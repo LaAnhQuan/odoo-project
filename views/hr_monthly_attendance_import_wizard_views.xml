@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+  <data>
+
+    <record id="view_hr_monthly_attendance_import_wizard_form" model="ir.ui.view">
+      <field name="name">hr.monthly.attendance.import.wizard.form</field>
+      <field name="model">hr.monthly.attendance.import.wizard</field>
+      <field name="arch" type="xml">
+        <form string="Import Excel (Ma trận)">
+          <group>
+            <field name="sheet_id" readonly="1"/>
+            <field name="file_data" filename="file_name"/>
+            <field name="file_name" invisible="1"/>
+          </group>
+          <footer>
+            <button string="Import" type="object" name="action_import" class="btn-primary"/>
+            <button string="Hủy" special="cancel" class="btn-secondary"/>
+          </footer>
+        </form>
+      </field>
+    </record>
+
+    <record id="action_hr_monthly_attendance_import_wizard" model="ir.actions.act_window">
+      <field name="name">Import Excel (Ma trận)</field>
+      <field name="res_model">hr.monthly.attendance.import.wizard</field>
+      <field name="view_mode">form</field>
+      <field name="target">new</field>
+      <field name="context">{'default_sheet_id': active_id}</field>
+    </record>
+
+  </data>
+</odoo>

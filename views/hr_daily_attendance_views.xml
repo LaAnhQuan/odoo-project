@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+
+        <!-- LIST -->
+        <record id="view_hr_daily_attendance_list" model="ir.ui.view">
+            <field name="name">hr.daily.attendance.list</field>
+            <field name="model">hr.daily.attendance</field>
+            <field name="arch" type="xml">
+                <list string="Chấm công theo ngày">
+                    <field name="employee_id"/>
+                    <field name="date"/>
+                    <field name="check_in"/>
+                    <field name="check_out"/>
+                    <field name="work_hours"/>
+                    <field name="overtime_hours"/>
+                    <field name="note"/>
+                </list>
+            </field>
+        </record>
+
+        <!-- FORM -->
+        <record id="view_hr_daily_attendance_form" model="ir.ui.view">
+            <field name="name">hr.daily.attendance.form</field>
+            <field name="model">hr.daily.attendance</field>
+            <field name="arch" type="xml">
+                <form string="Chấm công theo ngày">
+                    <sheet>
+                        <group>
+                            <group>
+                                <field name="employee_id"/>
+                                <field name="date"/>
+                            </group>
+                            <group>
+                                <field name="check_in"/>
+                                <field name="check_out"/>
+                            </group>
+                        </group>
+                        <group>
+                            <group>
+                                <field name="work_hours" readonly="1"/>
+                                <field name="overtime_hours"/>
+                            </group>
+                            <group>
+                                <field name="note" colspan="2"/>
+                            </group>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- CALENDAR -->
+        <record id="view_hr_daily_attendance_calendar" model="ir.ui.view">
+            <field name="name">hr.daily.attendance.calendar</field>
+            <field name="model">hr.daily.attendance</field>
+            <field name="arch" type="xml">
+                <calendar string="Chấm công theo ngày"
+                        date_start="check_in"
+                        date_stop="check_out"
+                        color="employee_id"
+                        mode="week">
+                    <!-- <field name="display_title"/> -->
+                    <field name="employee_id"/>
+                    <field name="work_hours"/>
+                    <field name="overtime_hours"/>
+                </calendar>
+
+            </field>
+        </record>
+
+        <!-- ACTION -->
+        <record id="action_hr_daily_attendance" model="ir.actions.act_window">
+            <field name="name">Chấm công theo ngày</field>
+            <field name="res_model">hr.daily.attendance</field>
+            <field name="view_mode">calendar,list,form</field>
+            <field name="view_id" ref="view_hr_daily_attendance_calendar"/>
+            <field name="context">{'default_date': context_today()}</field>
+        </record>
+
+        <!-- MENU -->
+        <menuitem id="menu_hr_daily_attendance_root"
+                  name="Chấm công theo ngày"
+                  parent="hr.menu_hr_root"
+                  action="action_hr_daily_attendance"
+                  sequence="25"/>
+    </data>
+</odoo>

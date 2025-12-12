@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+
+        <!-- Inherit Employee Form để thêm trường MANS -->
+        <record id="view_employee_form_inherit_mans" model="ir.ui.view">
+            <field name="name">hr.employee.form.inherit.mans</field>
+            <field name="model">hr.employee</field>
+            <field name="inherit_id" ref="hr.view_employee_form"/>
+            <field name="arch" type="xml">
+                <!-- Thêm trường MANS vào sau Work Contact Information -->
+                <xpath expr="//field[@name='work_phone']" position="after">
+                    <field name="mans" placeholder="VD: NV001, EMP123..."/>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Hiển thị MANS trong list view employee -->
+        <record id="view_employee_tree_inherit_mans" model="ir.ui.view">
+            <field name="name">hr.employee.tree.inherit.mans</field>
+            <field name="model">hr.employee</field>
+            <field name="inherit_id" ref="hr.view_employee_tree"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='name']" position="after">
+                    <field name="mans" optional="show"/>
+                </xpath>
+            </field>
+        </record>
+
+    </data>
+</odoo>

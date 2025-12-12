@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_hr_monthly_attendance,access_hr_monthly_attendance,model_hr_monthly_attendance,hr.group_hr_user,1,1,1,1
+access_hr_monthly_attendance_line,access_hr_monthly_attendance_line,model_hr_monthly_attendance_line,hr.group_hr_user,1,1,1,1
+access_hr_daily_attendance,access_hr_daily_attendance,model_hr_daily_attendance,hr.group_hr_user,1,1,1,1
+access_hr_monthly_attendance_import_wizard,access_hr_monthly_attendance_import_wizard,model_hr_monthly_attendance_import_wizard,hr.group_hr_user,1,1,1,1
