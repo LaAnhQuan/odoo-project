@@ -143,12 +143,30 @@ export class MonthlyAttendanceGrid extends Component {
         event.stopPropagation();
 
         const cellRect = event.currentTarget.getBoundingClientRect();
+        const dropdownHeight = 400; // Chiều cao ước tính của dropdown
+        const viewportHeight = window.innerHeight;
+        const spaceBelow = viewportHeight - cellRect.bottom;
+        const spaceAbove = cellRect.top;
+
+        // Quyết định hiển thị dropdown ở trên hay dưới
+        let top, openUpward = false;
+
+        if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
+            // Không đủ chỗ bên dưới và trên có nhiều chỗ hơn -> hiển thị lên trên
+            top = cellRect.top + window.scrollY - dropdownHeight;
+            openUpward = true;
+        } else {
+            // Hiển thị xuống dưới (mặc định)
+            top = cellRect.bottom + window.scrollY;
+            openUpward = false;
+        }
 
         this.state.editingCell = { recordId: record.id, day: day };
         this.state.showDropdown = true;
         this.state.dropdownPosition = {
-            top: cellRect.bottom + window.scrollY,
+            top: top,
             left: cellRect.left + window.scrollX,
+            openUpward: openUpward,
         };
     }
 

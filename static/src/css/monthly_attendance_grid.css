@@ -411,6 +411,15 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     min-width: 200px;
     max-width: 250px;
+    max-height: 400px;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Khi dropdown mở lên trên */
+.o_attendance_code_dropdown.o_dropdown_upward {
+    /* Đảo ngược hướng flex để header ở trên, content ở dưới */
+    flex-direction: column;
 }
 
 .o_dropdown_header {
@@ -418,12 +427,14 @@
     border-bottom: 1px solid #dee2e6;
     background: #f8f9fa;
     font-size: 13px;
+    flex-shrink: 0;
 }
 
 .o_dropdown_content {
     max-height: 350px;
     overflow-y: auto;
     overflow-x: hidden;
+    flex: 1;
 }
 
 .o_dropdown_item {

@@ -143,7 +143,7 @@
 
             <!-- Dropdown menu for editing -->
             <div t-if="state.showDropdown" 
-                 class="o_attendance_code_dropdown"
+                 t-att-class="'o_attendance_code_dropdown' + (state.dropdownPosition.openUpward ? ' o_dropdown_upward' : '')"
                  t-att-style="`top: ${state.dropdownPosition.top}px; left: ${state.dropdownPosition.left}px;`"
                  t-on-click.stop="">
                 <div class="o_dropdown_header">
