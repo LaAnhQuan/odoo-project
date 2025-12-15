@@ -376,6 +376,100 @@
     }
 }
 
+/* Edit mode styles */
+.o_grid_cell_editable {
+    cursor: pointer;
+    position: relative;
+}
+
+.o_grid_cell_editable:hover {
+    background-color: #e3f2fd !important;
+    box-shadow: inset 0 0 0 2px #2196f3;
+}
+
+.o_grid_cell_edit_icon {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    font-size: 8px;
+    color: #999;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.o_grid_cell_editable:hover .o_grid_cell_edit_icon {
+    opacity: 1;
+}
+
+/* Dropdown menu for attendance codes */
+.o_attendance_code_dropdown {
+    position: absolute;
+    z-index: 1000;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 200px;
+    max-width: 250px;
+}
+
+.o_dropdown_header {
+    padding: 10px 12px;
+    border-bottom: 1px solid #dee2e6;
+    background: #f8f9fa;
+    font-size: 13px;
+}
+
+.o_dropdown_content {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.o_dropdown_item {
+    padding: 8px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    transition: background 0.2s;
+}
+
+.o_dropdown_item:hover {
+    background: #f0f0f0;
+}
+
+.o_code_label {
+    font-weight: 600;
+    min-width: 40px;
+    font-family: monospace;
+}
+
+.o_code_name {
+    color: #666;
+}
+
+/* New total cell colors */
+.o_grid_cell_maternity {
+    background-color: #f7d6e6 !important;
+    color: #85144b;
+}
+
+.o_grid_cell_holiday {
+    background-color: #d1ecf1 !important;
+    color: #0c5460;
+}
+
+.o_grid_cell_bereavement {
+    background-color: #e2e3e5 !important;
+    color: #383d41;
+}
+
+.o_grid_cell_wedding {
+    background-color: #ffe5cc !important;
+    color: #cc5200;
+}
+
 /* Print styles */
 @media print {
     .o_grid_header {
@@ -388,5 +482,13 @@
 
     .o_attendance_grid_table {
         font-size: 10px;
+    }
+
+    .o_attendance_code_dropdown {
+        display: none !important;
+    }
+
+    .o_grid_cell_edit_icon {
+        display: none !important;
     }
 }

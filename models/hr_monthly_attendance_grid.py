@@ -104,24 +104,52 @@ class HrMonthlyAttendanceGrid(models.Model):
     
     # Tổng kết - Đồng bộ với hr.monthly.attendance.line
     worked_days = fields.Float(
-        string="Ngày công thực tế",
+        string="Công",
         compute="_compute_totals",
         store=True,
         help="Tổng số ngày công thực tế (W, X - đã tính thứ 7 = 0.5)",
     )
     
     paid_leave_days = fields.Float(
-        string="Ngày nghỉ hưởng lương",
+        string="Phép",
         compute="_compute_totals",
         store=True,
         help="Tổng số ngày phép hưởng lương (P, P/2)",
     )
     
     unpaid_leave_days = fields.Float(
-        string="Ngày nghỉ không lương",
+        string="Không lương",
         compute="_compute_totals",
         store=True,
         help="Tổng số ngày không lương (KO, KO/2)",
+    )
+    
+    maternity_days = fields.Float(
+        string="Thai sản",
+        compute="_compute_totals",
+        store=True,
+        help="Tổng số ngày nghỉ thai sản (TS, TS/2)",
+    )
+    
+    holiday_days = fields.Float(
+        string="Lễ",
+        compute="_compute_totals",
+        store=True,
+        help="Tổng số ngày nghỉ lễ (L, L/2)",
+    )
+    
+    bereavement_days = fields.Float(
+        string="Hiếu",
+        compute="_compute_totals",
+        store=True,
+        help="Tổng số ngày nghỉ hiếu (H, H/2)",
+    )
+    
+    wedding_days = fields.Float(
+        string="Hỷ",
+        compute="_compute_totals",
+        store=True,
+        help="Tổng số ngày nghỉ hỷ (HY, HY/2)",
     )
     
     overtime_hours = fields.Float(
@@ -132,10 +160,10 @@ class HrMonthlyAttendanceGrid(models.Model):
     )
     
     total_paid_days = fields.Float(
-        string="Tổng ngày công tính lương",
+        string="Tổng ngày công",
         compute="_compute_totals",
         store=True,
-        help="Ngày công thực tế + Ngày nghỉ hưởng lương",
+        help="Tổng ngày công tính lương",
     )
     
     # Giữ lại để backward compatible
@@ -185,28 +213,40 @@ class HrMonthlyAttendanceGrid(models.Model):
         - Chủ nhật (code W/X): Không tính
         - P/P2: Phép (hưởng lương)
         - KO/KO2: Không lương
+        - TS/TS2: Thai sản
+        - L/L2: Lễ
+        - H/H2: Hiếu
+        - HY/HY2: Hỷ
         """
         code_to_value = {
-            "P": 1.0,
-            "P2": 0.5,
-            "P/2": 0.5,
-            "KO": 1.0,
-            "KO2": 0.5,
-            "KO/2": 0.5,
+            "P": 1.0, "P2": 0.5, "P/2": 0.5,
+            "KO": 1.0, "KO2": 0.5, "KO/2": 0.5,
+            "TS": 1.0, "TS2": 0.5, "TS/2": 0.5,
+            "L": 1.0, "L2": 0.5, "L/2": 0.5,
+            "H": 1.0, "H2": 0.5, "H/2": 0.5,
+            "HY": 1.0, "HY2": 0.5, "HY/2": 0.5,
             "OFF": 0.0,
         }
         
         for rec in self:
             # Reset tất cả
             worked_days = 0.0      # Ngày công thực tế (W, X)
-            paid_leave = 0.0       # Ngày nghỉ hưởng lương (P, P/2)
+            paid_leave = 0.0       # Ngày nghỉ phép (P, P/2)
             unpaid_leave = 0.0     # Ngày nghỉ không lương (KO, KO/2)
+            maternity = 0.0        # Thai sản (TS, TS/2)
+            holiday = 0.0          # Lễ (L, L/2)
+            bereavement = 0.0      # Hiếu (H, H/2)
+            wedding = 0.0          # Hỷ (HY, HY/2)
             overtime_hours = 0.0   # Giờ làm thêm
             
             if not rec.month or not rec.year:
                 rec.worked_days = 0.0
                 rec.paid_leave_days = 0.0
                 rec.unpaid_leave_days = 0.0
+                rec.maternity_days = 0.0
+                rec.holiday_days = 0.0
+                rec.bereavement_days = 0.0
+                rec.wedding_days = 0.0
                 rec.overtime_hours = 0.0
                 rec.total_paid_days = 0.0
                 continue
@@ -250,7 +290,7 @@ class HrMonthlyAttendanceGrid(models.Model):
                     worked_days += day_value
                     
                 elif code in ["P", "P2", "P/2"]:
-                    # Ngày nghỉ hưởng lương (Phép)
+                    # Ngày nghỉ phép
                     day_value = code_to_value.get(code, 1.0)
                     paid_leave += day_value
                     
@@ -258,6 +298,26 @@ class HrMonthlyAttendanceGrid(models.Model):
                     # Ngày nghỉ không lương
                     day_value = code_to_value.get(code, 1.0)
                     unpaid_leave += day_value
+                    
+                elif code in ["TS", "TS2", "TS/2"]:
+                    # Ngày nghỉ thai sản
+                    day_value = code_to_value.get(code, 1.0)
+                    maternity += day_value
+                    
+                elif code in ["L", "L2", "L/2"]:
+                    # Ngày nghỉ lễ
+                    day_value = code_to_value.get(code, 1.0)
+                    holiday += day_value
+                    
+                elif code in ["H", "H2", "H/2"]:
+                    # Ngày nghỉ hiếu
+                    day_value = code_to_value.get(code, 1.0)
+                    bereavement += day_value
+                    
+                elif code in ["HY", "HY2", "HY/2"]:
+                    # Ngày nghỉ hỷ
+                    day_value = code_to_value.get(code, 1.0)
+                    wedding += day_value
                     
                 elif code == "OFF":
                     # Nghỉ - không tính
@@ -275,12 +335,16 @@ class HrMonthlyAttendanceGrid(models.Model):
                     except:
                         pass
             
-            # Tổng ngày công tính lương = Ngày công thực tế + Ngày nghỉ hưởng lương
-            total_paid = worked_days + paid_leave
+            # Tổng ngày công tính lương = Công + Phép + Thai sản + Lễ + Hiếu + Hỷ
+            total_paid = worked_days + paid_leave + maternity + holiday + bereavement + wedding
             
             rec.worked_days = worked_days
             rec.paid_leave_days = paid_leave
             rec.unpaid_leave_days = unpaid_leave
+            rec.maternity_days = maternity
+            rec.holiday_days = holiday
+            rec.bereavement_days = bereavement
+            rec.wedding_days = wedding
             rec.overtime_hours = overtime_hours
             rec.total_paid_days = total_paid
     
@@ -329,6 +393,45 @@ class HrMonthlyAttendanceGrid(models.Model):
             setattr(self, field_name, display_value)
         
         return True
+    
+    def update_cell_value(self, day, value):
+        """Cập nhật giá trị của một ô trong grid
+        
+        Args:
+            day (int): Ngày trong tháng (1-31)
+            value (str): Giá trị mới (VD: "P", "KO", "W", "TS", "L", "H", "HY", etc.)
+        
+        Returns:
+            dict: Thông tin cập nhật bao gồm totals mới
+        """
+        self.ensure_one()
+        
+        if not 1 <= day <= 31:
+            return {"error": "Ngày không hợp lệ"}
+        
+        field_name = f"day_{day:02d}"
+        
+        # Cập nhật giá trị
+        setattr(self, field_name, value)
+        
+        # Trigger recompute totals
+        self._compute_totals()
+        
+        # Trả về thông tin mới
+        return {
+            "success": True,
+            "totals": {
+                "worked_days": self.worked_days,
+                "paid_leave_days": self.paid_leave_days,
+                "unpaid_leave_days": self.unpaid_leave_days,
+                "maternity_days": self.maternity_days,
+                "holiday_days": self.holiday_days,
+                "bereavement_days": self.bereavement_days,
+                "wedding_days": self.wedding_days,
+                "overtime_hours": self.overtime_hours,
+                "total_paid_days": self.total_paid_days,
+            }
+        }
     
     @api.model
     def sync_all_from_monthly_sheet(self, sheet_id):

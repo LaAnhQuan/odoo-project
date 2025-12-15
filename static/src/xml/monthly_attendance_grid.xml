@@ -2,7 +2,7 @@
 <templates xml:space="preserve">
 
     <t t-name="mo_hr_monthly_attendance.MonthlyAttendanceGrid">
-        <div class="o_monthly_attendance_grid">
+        <div class="o_monthly_attendance_grid" t-on-click="onClickOutside">
             
             <!-- Header controls -->
             <div class="o_grid_header">
@@ -36,11 +36,15 @@
                             <th class="o_grid_cell_header" t-foreach="state.days" t-as="day" t-key="'weekday_' + day">
                                 <t t-esc="getWeekday(day)"/>
                             </th>
-                            <th class="o_grid_cell_header" rowspan="2">Ngày công thực tế</th>
-                            <th class="o_grid_cell_header" rowspan="2">Ngày nghỉ hưởng lương</th>
-                            <th class="o_grid_cell_header" rowspan="2">Ngày nghỉ không lương</th>
+                            <th class="o_grid_cell_header" rowspan="2">Công</th>
+                            <th class="o_grid_cell_header" rowspan="2">Phép</th>
+                            <th class="o_grid_cell_header" rowspan="2">Không lương</th>
+                            <th class="o_grid_cell_header" rowspan="2">Thai sản</th>
+                            <th class="o_grid_cell_header" rowspan="2">Lễ</th>
+                            <th class="o_grid_cell_header" rowspan="2">Hiếu</th>
+                            <th class="o_grid_cell_header" rowspan="2">Hỷ</th>
                             <th class="o_grid_cell_header" rowspan="2">Giờ làm thêm</th>
-                            <th class="o_grid_cell_header" rowspan="2">Tổng ngày công</th>
+                            <th class="o_grid_cell_header" rowspan="2">Tổng công</th>
                         </tr>
                         <!-- Header row 2: Ngày -->
                         <tr class="o_grid_header_row">
@@ -72,26 +76,47 @@
                             
                             <!-- Các ngày trong tháng -->
                             <td t-foreach="state.days" t-as="day" t-key="'cell_' + record.id + '_' + day"
-                                t-att-class="'o_grid_cell ' + getCellClass(record, day) + (isWeekend(day) ? ' weekend' : '')"
-                                t-on-click="() => this.onCellClick(record, day)">
+                                t-att-class="'o_grid_cell o_grid_cell_editable ' + getCellClass(record, day) + (isWeekend(day) ? ' weekend' : '')"
+                                t-on-click="(ev) => this.onCellClick(ev, record, day)">
                                 <div class="o_grid_cell_content">
                                     <t t-esc="shouldShowCellValue(record, day) ? getCellValue(record, day) : ''"/>
+                                    <i class="fa fa-pencil o_grid_cell_edit_icon"/>
                                 </div>
                             </td>
                             
-                            <!-- Ngày công thực tế -->
+                            <!-- Công -->
                             <td class="o_grid_cell_total o_grid_cell_work">
                                 <strong><t t-esc="record.worked_days ? record.worked_days.toFixed(1) : '0.0'"/></strong>
                             </td>
                             
-                            <!-- Ngày nghỉ hưởng lương -->
+                            <!-- Phép -->
                             <td class="o_grid_cell_total o_grid_cell_leave">
                                 <strong><t t-esc="record.paid_leave_days ? record.paid_leave_days.toFixed(1) : '0.0'"/></strong>
                             </td>
                             
-                            <!-- Ngày nghỉ không lương -->
+                            <!-- Không lương -->
                             <td class="o_grid_cell_total o_grid_cell_unpaid">
                                 <strong><t t-esc="record.unpaid_leave_days ? record.unpaid_leave_days.toFixed(1) : '0.0'"/></strong>
+                            </td>
+                            
+                            <!-- Thai sản -->
+                            <td class="o_grid_cell_total o_grid_cell_maternity">
+                                <strong><t t-esc="record.maternity_days ? record.maternity_days.toFixed(1) : '0.0'"/></strong>
+                            </td>
+                            
+                            <!-- Lễ -->
+                            <td class="o_grid_cell_total o_grid_cell_holiday">
+                                <strong><t t-esc="record.holiday_days ? record.holiday_days.toFixed(1) : '0.0'"/></strong>
+                            </td>
+                            
+                            <!-- Hiếu -->
+                            <td class="o_grid_cell_total o_grid_cell_bereavement">
+                                <strong><t t-esc="record.bereavement_days ? record.bereavement_days.toFixed(1) : '0.0'"/></strong>
+                            </td>
+                            
+                            <!-- Hỷ -->
+                            <td class="o_grid_cell_total o_grid_cell_wedding">
+                                <strong><t t-esc="record.wedding_days ? record.wedding_days.toFixed(1) : '0.0'"/></strong>
                             </td>
                             
                             <!-- Giờ làm thêm -->
@@ -110,6 +135,28 @@
                 <!-- Empty state -->
                 <div t-if="state.records.length === 0" class="o_grid_empty">
                     <p>Không có dữ liệu chấm công cho tháng này.</p>
+                </div>
+            </div>
+
+            <!-- Dropdown menu for editing -->
+            <div t-if="state.showDropdown" 
+                 class="o_attendance_code_dropdown"
+                 t-att-style="`top: ${state.dropdownPosition.top}px; left: ${state.dropdownPosition.left}px;`"
+                 t-on-click.stop="">
+                <div class="o_dropdown_header">
+                    <strong>Chọn loại công</strong>
+                </div>
+                <div class="o_dropdown_content">
+                    <div t-foreach="attendanceCodes" t-as="codeItem" t-key="codeItem.code"
+                         class="o_dropdown_item"
+                         t-att-style="`border-left: 4px solid ${codeItem.color};`"
+                         t-on-click="() => this.onCodeSelect(codeItem.code)">
+                        <span class="o_code_label">
+                            <t t-if="codeItem.code" t-esc="codeItem.code"/>
+                            <t t-else="">--</t>
+                        </span>
+                        <span class="o_code_name" t-esc="codeItem.label"/>
+                    </div>
                 </div>
             </div>
         </div>

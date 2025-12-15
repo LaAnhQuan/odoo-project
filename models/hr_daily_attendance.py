@@ -6,6 +6,14 @@ ATTENDANCE_CODE_MAP = [
     ("P2", "Phép nửa ngày"),
     ("KO", "Không lương"),
     ("KO2", "Không lương nửa ngày"),
+    ("TS", "Thai sản"),
+    ("TS2", "Thai sản nửa ngày"),
+    ("L", "Lễ"),
+    ("L2", "Lễ nửa ngày"),
+    ("H", "Hiếu"),
+    ("H2", "Hiếu nửa ngày"),
+    ("HY", "Hỷ"),
+    ("HY2", "Hỷ nửa ngày"),
     ("OFF", "Nghỉ"),
 ]
 

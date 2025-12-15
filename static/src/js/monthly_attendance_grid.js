@@ -20,7 +20,29 @@ export class MonthlyAttendanceGrid extends Component {
             records: [],
             days: [],
             loading: true,
+            editingCell: null, // {recordId, day}
+            showDropdown: false,
+            dropdownPosition: { top: 0, left: 0 },
         });
+
+        this.attendanceCodes = [
+            { code: "X", label: "Công", color: "#28a745" },
+            { code: "W", label: "Công", color: "#28a745" },
+            { code: "P", label: "Phép", color: "#ffc107" },
+            { code: "P/2", label: "Phép 1/2", color: "#ffc107" },
+            { code: "KO", label: "Không lương", color: "#dc3545" },
+            { code: "KO/2", label: "Không lương 1/2", color: "#dc3545" },
+            { code: "TS", label: "Thai sản", color: "#e83e8c" },
+            { code: "TS/2", label: "Thai sản 1/2", color: "#e83e8c" },
+            { code: "L", label: "Lễ", color: "#17a2b8" },
+            { code: "L/2", label: "Lễ 1/2", color: "#17a2b8" },
+            { code: "H", label: "Hiếu", color: "#6c757d" },
+            { code: "H/2", label: "Hiếu 1/2", color: "#6c757d" },
+            { code: "HY", label: "Hỷ", color: "#fd7e14" },
+            { code: "HY/2", label: "Hỷ 1/2", color: "#fd7e14" },
+            { code: "OFF", label: "Nghỉ", color: "#6c757d" },
+            { code: "", label: "Xóa", color: "#ffffff" },
+        ];
 
         onWillStart(async () => {
             await this.loadData();
@@ -64,6 +86,10 @@ export class MonthlyAttendanceGrid extends Component {
                 "worked_days",
                 "paid_leave_days",
                 "unpaid_leave_days",
+                "maternity_days",
+                "holiday_days",
+                "bereavement_days",
+                "wedding_days",
                 "overtime_hours",
                 "total_paid_days",
             ],
@@ -105,27 +131,53 @@ export class MonthlyAttendanceGrid extends Component {
         await this.loadData();
     }
 
-    async onCellClick(record, day) {
-        // Mở chi tiết chấm công ngày của nhân viên
-        const date = `${this.state.year}-${String(this.state.month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-
-        const action = {
-            type: "ir.actions.act_window",
-            name: `Chấm công ${record.employee_name} - ${day}/${this.state.month}/${this.state.year}`,
-            res_model: "hr.daily.attendance",
-            view_mode: "list,form",
-            views: [[false, "list"], [false, "form"]],
-            domain: [
-                ["employee_id", "=", record.employee_id[0]],
-                ["date", "=", date],
-            ],
-            context: {
-                default_employee_id: record.employee_id[0],
-                default_date: date,
-            },
+    async onCellClick(event, record, day) {
+        // Hiển thị dropdown để chỉnh sửa
+        event.stopPropagation();
+        
+        const cellRect = event.currentTarget.getBoundingClientRect();
+        
+        this.state.editingCell = { recordId: record.id, day: day };
+        this.state.showDropdown = true;
+        this.state.dropdownPosition = {
+            top: cellRect.bottom + window.scrollY,
+            left: cellRect.left + window.scrollX,
         };
+    }
 
-        this.action.doAction(action);
+    async onCodeSelect(code) {
+        if (!this.state.editingCell) return;
+
+        const { recordId, day } = this.state.editingCell;
+        
+        try {
+            // Gọi API để update cell value
+            const result = await this.orm.call(
+                "hr.monthly.attendance.grid",
+                "update_cell_value",
+                [recordId, day, code],
+                {}
+            );
+
+            if (result.success) {
+                // Cập nhật lại dữ liệu local
+                await this.loadData();
+            }
+        } catch (error) {
+            console.error("Error updating cell:", error);
+        }
+
+        // Đóng dropdown
+        this.state.showDropdown = false;
+        this.state.editingCell = null;
+    }
+
+    onClickOutside() {
+        // Đóng dropdown khi click bên ngoài
+        if (this.state.showDropdown) {
+            this.state.showDropdown = false;
+            this.state.editingCell = null;
+        }
     }
 
     getCellValue(record, day) {
