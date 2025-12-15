@@ -294,35 +294,59 @@ class HrMonthlyAttendanceGrid(models.Model):
                         day_value = 1.0
                     worked_days += day_value
                     
-                elif code in ["P", "P2", "P/2"]:
-                    # Ngày nghỉ phép
-                    day_value = code_to_value.get(code, 1.0)
-                    paid_leave += day_value
+                elif code == "P":
+                    # Nghỉ phép cả ngày - chỉ tính vào phép, không tính công
+                    paid_leave += 1.0
                     
-                elif code in ["KO", "KO2", "KO/2"]:
-                    # Ngày nghỉ không lương
-                    day_value = code_to_value.get(code, 1.0)
-                    unpaid_leave += day_value
+                elif code in ["P2", "P/2"]:
+                    # Nghỉ phép nửa ngày - tính cả công và phép
+                    worked_days += 0.5  # Nửa ngày làm việc
+                    paid_leave += 0.5    # Nửa ngày nghỉ phép
                     
-                elif code in ["TS", "TS2", "TS/2"]:
-                    # Ngày nghỉ thai sản
-                    day_value = code_to_value.get(code, 1.0)
-                    maternity += day_value
+                elif code == "KO":
+                    # Nghỉ không lương cả ngày
+                    unpaid_leave += 1.0
                     
-                elif code in ["L", "L2", "L/2"]:
-                    # Ngày nghỉ lễ
-                    day_value = code_to_value.get(code, 1.0)
-                    holiday += day_value
+                elif code in ["KO2", "KO/2"]:
+                    # Nghỉ không lương nửa ngày - vẫn tính nửa công
+                    worked_days += 0.5
+                    unpaid_leave += 0.5
                     
-                elif code in ["H", "H2", "H/2"]:
-                    # Ngày nghỉ hiếu
-                    day_value = code_to_value.get(code, 1.0)
-                    bereavement += day_value
+                elif code == "TS":
+                    # Nghỉ thai sản cả ngày
+                    maternity += 1.0
                     
-                elif code in ["HY", "HY2", "HY/2"]:
-                    # Ngày nghỉ hỷ
-                    day_value = code_to_value.get(code, 1.0)
-                    wedding += day_value
+                elif code in ["TS2", "TS/2"]:
+                    # Nghỉ thai sản nửa ngày
+                    worked_days += 0.5
+                    maternity += 0.5
+                    
+                elif code == "L":
+                    # Nghỉ lễ cả ngày
+                    holiday += 1.0
+                    
+                elif code in ["L2", "L/2"]:
+                    # Nghỉ lễ nửa ngày
+                    worked_days += 0.5
+                    holiday += 0.5
+                    
+                elif code == "H":
+                    # Nghỉ hiếu cả ngày
+                    bereavement += 1.0
+                    
+                elif code in ["H2", "H/2"]:
+                    # Nghỉ hiếu nửa ngày
+                    worked_days += 0.5
+                    bereavement += 0.5
+                    
+                elif code == "HY":
+                    # Nghỉ hỷ cả ngày
+                    wedding += 1.0
+                    
+                elif code in ["HY2", "HY/2"]:
+                    # Nghỉ hỷ nửa ngày
+                    worked_days += 0.5
+                    wedding += 0.5
                 
                 # Nếu có format "Xh" trong value, extract giờ làm thêm
                 if "h" in value.lower() and "(" in value:
