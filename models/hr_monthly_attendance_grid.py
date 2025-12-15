@@ -259,12 +259,17 @@ class HrMonthlyAttendanceGrid(models.Model):
                 field_name = f"day_{day_num:02d}"
                 value = getattr(rec, field_name, None)
                 
-                if not value:
+                # Nếu không có value hoặc rỗng, bỏ qua (không tính gì cả)
+                if not value or not value.strip():
                     continue
                 
                 # Parse value: có thể là "W", "P", "KO/2", "W (8h)", etc.
                 code = value.split()[0] if value else ""
                 code = code.strip().upper()
+                
+                # Nếu là OFF (nghỉ), bỏ qua không tính
+                if code == "OFF":
+                    continue
                 
                 # Kiểm tra ngày trong tuần
                 try:
@@ -318,10 +323,6 @@ class HrMonthlyAttendanceGrid(models.Model):
                     # Ngày nghỉ hỷ
                     day_value = code_to_value.get(code, 1.0)
                     wedding += day_value
-                    
-                elif code == "OFF":
-                    # Nghỉ - không tính
-                    pass
                 
                 # Nếu có format "Xh" trong value, extract giờ làm thêm
                 if "h" in value.lower() and "(" in value:
@@ -445,12 +446,18 @@ class HrMonthlyAttendanceGrid(models.Model):
             ("date", "=", target_date),
         ], limit=1)
         
-        if daily:
-            # Cập nhật
-            daily.write({"attendance_code": attendance_code})
+        # Nếu chọn xóa hoặc OFF
+        if not value or not value.strip() or attendance_code == "OFF":
+            if daily:
+                # Xóa record trong daily attendance
+                daily.unlink()
         else:
-            # Tạo mới nếu không có OFF
-            if attendance_code != "OFF":
+            # Có giá trị
+            if daily:
+                # Cập nhật
+                daily.write({"attendance_code": attendance_code})
+            else:
+                # Tạo mới
                 Daily.create({
                     "employee_id": self.employee_id.id,
                     "date": target_date,

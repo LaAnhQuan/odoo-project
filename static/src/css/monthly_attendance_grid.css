@@ -421,8 +421,9 @@
 }
 
 .o_dropdown_content {
-    max-height: 400px;
+    max-height: 350px;
     overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .o_dropdown_item {
