@@ -13,6 +13,9 @@
                     </h3>
                 </div>
                 <div class="o_grid_controls">
+                    <button class="btn btn-secondary" t-on-click="onBackToMonthlySheet">
+                        <i class="fa fa-arrow-left"/> Quay lại bảng chính
+                    </button>
                     <button class="btn btn-primary" t-on-click="onRefresh">
                         <i class="fa fa-refresh"/> Làm mới
                     </button>

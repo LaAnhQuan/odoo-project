@@ -17,6 +17,7 @@ export class MonthlyAttendanceGrid extends Component {
             month: null,
             year: null,
             department_id: null,
+            monthly_sheet_id: null,
             records: [],
             days: [],
             loading: true,
@@ -82,6 +83,7 @@ export class MonthlyAttendanceGrid extends Component {
                 "employee_name",
                 "mans",
                 "department_id",
+                "monthly_sheet_id",
                 ...this.state.days.map(d => `day_${String(d).padStart(2, "0")}`),
                 "worked_days",
                 "paid_leave_days",
@@ -95,6 +97,11 @@ export class MonthlyAttendanceGrid extends Component {
             ],
             { order: "employee_name" }
         );
+
+        // Lấy monthly_sheet_id từ record đầu tiên (tất cả record trong cùng tháng có cùng sheet)
+        if (this.state.records.length > 0 && this.state.records[0].monthly_sheet_id) {
+            this.state.monthly_sheet_id = this.state.records[0].monthly_sheet_id[0];
+        }
 
         this.state.loading = false;
 
@@ -134,9 +141,9 @@ export class MonthlyAttendanceGrid extends Component {
     async onCellClick(event, record, day) {
         // Hiển thị dropdown để chỉnh sửa
         event.stopPropagation();
-        
+
         const cellRect = event.currentTarget.getBoundingClientRect();
-        
+
         this.state.editingCell = { recordId: record.id, day: day };
         this.state.showDropdown = true;
         this.state.dropdownPosition = {
@@ -149,7 +156,7 @@ export class MonthlyAttendanceGrid extends Component {
         if (!this.state.editingCell) return;
 
         const { recordId, day } = this.state.editingCell;
-        
+
         try {
             // Gọi API để update cell value
             const result = await this.orm.call(
@@ -177,6 +184,40 @@ export class MonthlyAttendanceGrid extends Component {
         if (this.state.showDropdown) {
             this.state.showDropdown = false;
             this.state.editingCell = null;
+        }
+    }
+
+    async onBackToMonthlySheet() {
+        // Quay lại bảng chấm công tháng chính
+        if (this.state.monthly_sheet_id) {
+            this.action.doAction({
+                type: "ir.actions.act_window",
+                res_model: "hr.monthly.attendance",
+                res_id: this.state.monthly_sheet_id,
+                views: [[false, "form"]],
+                target: "current",
+            });
+        } else {
+            // Tìm monthly sheet
+            const sheets = await this.orm.searchRead(
+                "hr.monthly.attendance",
+                [
+                    ["month", "=", String(this.state.month)],
+                    ["year", "=", this.state.year],
+                ],
+                ["id"],
+                { limit: 1 }
+            );
+
+            if (sheets.length > 0) {
+                this.action.doAction({
+                    type: "ir.actions.act_window",
+                    res_model: "hr.monthly.attendance",
+                    res_id: sheets[0].id,
+                    views: [[false, "form"]],
+                    target: "current",
+                });
+            }
         }
     }
 

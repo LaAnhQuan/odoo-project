@@ -395,7 +395,7 @@ class HrMonthlyAttendanceGrid(models.Model):
         return True
     
     def update_cell_value(self, day, value):
-        """Cập nhật giá trị của một ô trong grid
+        """Cập nhật giá trị của một ô trong grid và đồng bộ vào database
         
         Args:
             day (int): Ngày trong tháng (1-31)
@@ -409,13 +409,61 @@ class HrMonthlyAttendanceGrid(models.Model):
         if not 1 <= day <= 31:
             return {"error": "Ngày không hợp lệ"}
         
+        if not self.month or not self.year:
+            return {"error": "Thiếu thông tin tháng/năm"}
+        
         field_name = f"day_{day:02d}"
         
-        # Cập nhật giá trị
+        # Cập nhật giá trị trong grid
         setattr(self, field_name, value)
+        
+        # Đồng bộ vào hr.daily.attendance
+        month_int = int(self.month)
+        target_date = date(self.year, month_int, day)
+        
+        # Map code hiển thị sang attendance_code
+        code_map = {
+            "X": "X", "W": "X",
+            "P": "P", "P/2": "P2",
+            "KO": "KO", "KO/2": "KO2",
+            "TS": "TS", "TS/2": "TS2",
+            "L": "L", "L/2": "L2",
+            "H": "H", "H/2": "H2",
+            "HY": "HY", "HY/2": "HY2",
+            "OFF": "OFF",
+            "": "OFF",  # Xóa = OFF
+        }
+        
+        # Parse value để lấy code
+        code = value.split()[0] if value else ""
+        attendance_code = code_map.get(code.upper(), "X")
+        
+        # Tìm hoặc tạo daily record
+        Daily = self.env["hr.daily.attendance"]
+        daily = Daily.search([
+            ("employee_id", "=", self.employee_id.id),
+            ("date", "=", target_date),
+        ], limit=1)
+        
+        if daily:
+            # Cập nhật
+            daily.write({"attendance_code": attendance_code})
+        else:
+            # Tạo mới nếu không có OFF
+            if attendance_code != "OFF":
+                Daily.create({
+                    "employee_id": self.employee_id.id,
+                    "date": target_date,
+                    "attendance_code": attendance_code,
+                    "monthly_sheet_id": self.monthly_sheet_id.id if self.monthly_sheet_id else False,
+                })
         
         # Trigger recompute totals
         self._compute_totals()
+        
+        # Cập nhật lại monthly attendance line nếu có
+        if self.monthly_sheet_id:
+            self._sync_totals_to_monthly_line()
         
         # Trả về thông tin mới
         return {
@@ -432,6 +480,70 @@ class HrMonthlyAttendanceGrid(models.Model):
                 "total_paid_days": self.total_paid_days,
             }
         }
+    
+    def _sync_totals_to_monthly_line(self):
+        """Đồng bộ tổng kết từ grid vào monthly attendance line"""
+        self.ensure_one()
+        
+        if not self.monthly_sheet_id:
+            return
+        
+        # Tìm line tương ứng
+        Line = self.env["hr.monthly.attendance.line"]
+        line = Line.search([
+            ("sheet_id", "=", self.monthly_sheet_id.id),
+            ("employee_id", "=", self.employee_id.id),
+        ], limit=1)
+        
+        if line:
+            line.write({
+                "worked_days": self.worked_days,
+                "paid_leave_days": self.paid_leave_days,
+                "unpaid_leave_days": self.unpaid_leave_days,
+                "overtime_hours": self.overtime_hours,
+            })
+    
+    def action_open_monthly_sheet(self):
+        """Mở bảng chấm công tháng chính"""
+        self.ensure_one()
+        
+        if self.monthly_sheet_id:
+            return {
+                "type": "ir.actions.act_window",
+                "name": "Bảng chấm công tháng",
+                "res_model": "hr.monthly.attendance",
+                "res_id": self.monthly_sheet_id.id,
+                "view_mode": "form",
+                "target": "current",
+            }
+        else:
+            # Tìm hoặc tạo monthly sheet
+            Sheet = self.env["hr.monthly.attendance"]
+            sheet = Sheet.search([
+                ("month", "=", self.month),
+                ("year", "=", self.year),
+                ("company_id", "=", self.company_id.id),
+            ], limit=1)
+            
+            if sheet:
+                return {
+                    "type": "ir.actions.act_window",
+                    "name": "Bảng chấm công tháng",
+                    "res_model": "hr.monthly.attendance",
+                    "res_id": sheet.id,
+                    "view_mode": "form",
+                    "target": "current",
+                }
+            else:
+                return {
+                    "type": "ir.actions.client",
+                    "tag": "display_notification",
+                    "params": {
+                        "title": "Thông báo",
+                        "message": "Chưa có bảng chấm công tháng cho kỳ này",
+                        "type": "warning",
+                    },
+                }
     
     @api.model
     def sync_all_from_monthly_sheet(self, sheet_id):
