@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="mo_hr_monthly_attendance.MonthlyAttendanceGrid">
+        <div class="o_monthly_attendance_grid">
+            
+            <!-- Header controls -->
+            <div class="o_grid_header">
+                <div class="o_grid_title">
+                    <h3>
+                        <span>Bảng chấm công tháng </span>
+                        <t t-esc="state.month"/>/<t t-esc="state.year"/>
+                    </h3>
+                </div>
+                <div class="o_grid_controls">
+                    <button class="btn btn-primary" t-on-click="onRefresh">
+                        <i class="fa fa-refresh"/> Làm mới
+                    </button>
+                </div>
+            </div>
+
+            <!-- Loading spinner -->
+            <div t-if="state.loading" class="o_grid_loading">
+                <i class="fa fa-spinner fa-spin fa-3x"/>
+            </div>
+
+            <!-- Grid table -->
+            <div t-else="" class="o_grid_table_container">
+                <table class="table table-bordered o_attendance_grid_table">
+                    <thead>
+                        <!-- Header row 1: Thứ -->
+                        <tr class="o_grid_header_row">
+                            <th class="o_grid_cell_header sticky-col" rowspan="2">STT</th>
+                            <th class="o_grid_cell_header sticky-col" rowspan="2">MANS</th>
+                            <th class="o_grid_cell_header sticky-col" rowspan="2">Họ và tên</th>
+                            <th class="o_grid_cell_header" t-foreach="state.days" t-as="day" t-key="'weekday_' + day">
+                                <t t-esc="getWeekday(day)"/>
+                            </th>
+                            <th class="o_grid_cell_header" rowspan="2">Ngày công thực tế</th>
+                            <th class="o_grid_cell_header" rowspan="2">Ngày nghỉ hưởng lương</th>
+                            <th class="o_grid_cell_header" rowspan="2">Ngày nghỉ không lương</th>
+                            <th class="o_grid_cell_header" rowspan="2">Giờ làm thêm</th>
+                            <th class="o_grid_cell_header" rowspan="2">Tổng ngày công</th>
+                        </tr>
+                        <!-- Header row 2: Ngày -->
+                        <tr class="o_grid_header_row">
+                            <th t-foreach="state.days" t-as="day" t-key="'day_' + day"
+                                t-att-class="'o_grid_cell_day' + (isWeekend(day) ? ' weekend' : '') + (isSaturday(day) ? ' saturday' : '')">
+                                <t t-esc="day"/>
+                                <t t-if="isSaturday(day)">
+                                    <span class="badge badge-warning" style="font-size: 9px; margin-left: 2px;">0.5</span>
+                                </t>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="state.records" t-as="record" t-key="record.id" class="o_grid_row">
+                            <!-- STT -->
+                            <td class="o_grid_cell_number sticky-col">
+                                <t t-esc="record_index + 1"/>
+                            </td>
+                            
+                            <!-- MANS -->
+                            <td class="o_grid_cell_mans sticky-col">
+                                <t t-esc="record.mans"/>
+                            </td>
+                            
+                            <!-- Tên nhân viên -->
+                            <td class="o_grid_cell_name sticky-col">
+                                <strong><t t-esc="record.employee_name"/></strong>
+                            </td>
+                            
+                            <!-- Các ngày trong tháng -->
+                            <td t-foreach="state.days" t-as="day" t-key="'cell_' + record.id + '_' + day"
+                                t-att-class="'o_grid_cell ' + getCellClass(record, day) + (isWeekend(day) ? ' weekend' : '')"
+                                t-on-click="() => this.onCellClick(record, day)">
+                                <div class="o_grid_cell_content">
+                                    <t t-esc="shouldShowCellValue(record, day) ? getCellValue(record, day) : ''"/>
+                                </div>
+                            </td>
+                            
+                            <!-- Ngày công thực tế -->
+                            <td class="o_grid_cell_total o_grid_cell_work">
+                                <strong><t t-esc="record.worked_days ? record.worked_days.toFixed(1) : '0.0'"/></strong>
+                            </td>
+                            
+                            <!-- Ngày nghỉ hưởng lương -->
+                            <td class="o_grid_cell_total o_grid_cell_leave">
+                                <strong><t t-esc="record.paid_leave_days ? record.paid_leave_days.toFixed(1) : '0.0'"/></strong>
+                            </td>
+                            
+                            <!-- Ngày nghỉ không lương -->
+                            <td class="o_grid_cell_total o_grid_cell_unpaid">
+                                <strong><t t-esc="record.unpaid_leave_days ? record.unpaid_leave_days.toFixed(1) : '0.0'"/></strong>
+                            </td>
+                            
+                            <!-- Giờ làm thêm -->
+                            <td class="o_grid_cell_total">
+                                <t t-esc="record.overtime_hours ? record.overtime_hours.toFixed(1) : '0.0'"/>
+                            </td>
+                            
+                            <!-- Tổng ngày công -->
+                            <td class="o_grid_cell_total o_grid_cell_percentage">
+                                <strong><t t-esc="record.total_paid_days ? record.total_paid_days.toFixed(1) : '0.0'"/></strong>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <!-- Empty state -->
+                <div t-if="state.records.length === 0" class="o_grid_empty">
+                    <p>Không có dữ liệu chấm công cho tháng này.</p>
+                </div>
+            </div>
+        </div>
+    </t>
+
+</templates>

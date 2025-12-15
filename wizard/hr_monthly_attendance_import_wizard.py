@@ -19,7 +19,7 @@ def _map_cell_to_code(cell_value):
     v = _norm(cell_value).upper().replace(" ", "")
     # trống = công
     if v == "":
-        return "W"
+        return "X"
 
     mapping = {
         "P": "P",
@@ -175,6 +175,9 @@ class HrMonthlyAttendanceImportWizard(models.TransientModel):
         if imported_employees == 0:
             raise UserError(_("Không import được nhân viên nào!\n\n%s") % full_message)
 
+        # Đồng bộ dữ liệu sang grid view
+        self._sync_to_grid_view(sheet)
+        
         # Thành công một phần hoặc toàn bộ
         return {
             "type": "ir.actions.client",
@@ -184,5 +187,84 @@ class HrMonthlyAttendanceImportWizard(models.TransientModel):
                 "message": full_message,
                 "sticky": True,
                 "type": "warning" if not_found else "success",
+                "next": {
+                    "type": "ir.actions.client",
+                    "tag": "monthly_attendance_grid",
+                    "context": {
+                        "default_month": sheet.month,
+                        "default_year": sheet.year,
+                        "default_department_id": sheet.department_id.id if sheet.department_id else False,
+                    },
+                },
             },
         }
+    
+    def _sync_to_grid_view(self, sheet):
+        """Đồng bộ dữ liệu từ daily attendance sang grid view"""
+        Grid = self.env["hr.monthly.attendance.grid"].sudo()
+        Daily = self.env["hr.daily.attendance"].sudo()
+        
+        month_int = int(sheet.month)
+        last_day = calendar.monthrange(sheet.year, month_int)[1]
+        date_from = date(sheet.year, month_int, 1)
+        date_to = date(sheet.year, month_int, last_day)
+        
+        # Lấy tất cả nhân viên có chấm công trong tháng này
+        domain = [("date", ">=", date_from), ("date", "<=", date_to)]
+        if sheet.company_id:
+            domain.append(("company_id", "=", sheet.company_id.id))
+        if sheet.department_id:
+            domain.append(("department_id", "=", sheet.department_id.id))
+        
+        daily_records = Daily.search(domain)
+        employees = daily_records.mapped("employee_id")
+        
+        # Map code hiển thị
+        code_display = {
+            "W": "W",
+            "P": "P",
+            "P2": "P/2",
+            "KO": "KO",
+            "KO2": "KO/2",
+            "OFF": "OFF",
+        }
+        
+        for employee in employees:
+            # Tìm hoặc tạo grid record
+            grid = Grid.search([
+                ("employee_id", "=", employee.id),
+                ("month", "=", sheet.month),
+                ("year", "=", sheet.year),
+            ], limit=1)
+            
+            if not grid:
+                grid = Grid.create({
+                    "employee_id": employee.id,
+                    "month": sheet.month,
+                    "year": sheet.year,
+                    "monthly_sheet_id": sheet.id,
+                })
+            else:
+                grid.monthly_sheet_id = sheet.id
+            
+            # Lấy chấm công của nhân viên trong tháng
+            emp_daily = Daily.search([
+                ("employee_id", "=", employee.id),
+                ("date", ">=", date_from),
+                ("date", "<=", date_to),
+            ])
+            
+            # Cập nhật từng ngày
+            for daily in emp_daily:
+                day_num = daily.date.day
+                field_name = f"day_{day_num:02d}"
+                
+                # Format: "Code" hoặc "Code (Xh)" nếu có giờ
+                code = code_display.get(daily.attendance_code, daily.attendance_code)
+                
+                if daily.work_hours > 0:
+                    display_value = f"{code} ({daily.work_hours:.0f}h)"
+                else:
+                    display_value = code
+                
+                setattr(grid, field_name, display_value)

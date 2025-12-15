@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data>
+
+        <!-- Action để mở Grid View -->
+        <record id="action_hr_monthly_attendance_grid" model="ir.actions.client">
+            <field name="name">Bảng chấm công (Grid)</field>
+            <field name="tag">monthly_attendance_grid</field>
+            <field name="target">current</field>
+            <field name="context">{
+                'default_month': context.get('default_month', False),
+                'default_year': context.get('default_year', False),
+                'default_department_id': context.get('default_department_id', False),
+            }</field>
+        </record>
+
+        <!-- List view cho grid model -->
+        <record id="view_hr_monthly_attendance_grid_list" model="ir.ui.view">
+            <field name="name">hr.monthly.attendance.grid.list</field>
+            <field name="model">hr.monthly.attendance.grid</field>
+            <field name="arch" type="xml">
+                <list string="Grid chấm công tháng" create="false" edit="false">
+                    <field name="employee_name"/>
+                    <field name="mans"/>
+                    <field name="month"/>
+                    <field name="year"/>
+                    <field name="department_id"/>
+                    <field name="worked_days" sum="Tổng công"/>
+                    <field name="paid_leave_days" sum="Tổng phép"/>
+                    <field name="unpaid_leave_days" sum="Tổng KL"/>
+                    <field name="overtime_hours" sum="Tổng giờ OT"/>
+                    <field name="total_paid_days" sum="Tổng ngày công"/>
+                </list>
+            </field>
+        </record>
+
+        <!-- Form view cho grid model (để xem chi tiết) -->
+        <record id="view_hr_monthly_attendance_grid_form" model="ir.ui.view">
+            <field name="name">hr.monthly.attendance.grid.form</field>
+            <field name="model">hr.monthly.attendance.grid</field>
+            <field name="arch" type="xml">
+                <form string="Chi tiết chấm công tháng">
+                    <header>
+                        <button name="action_sync_from_daily" 
+                                type="object" 
+                                string="Đồng bộ từ chấm công ngày"
+                                class="btn-primary"/>
+                        <button name="action_open_daily_records" 
+                                type="object" 
+                                string="Xem chấm công ngày"
+                                class="btn-secondary"/>
+                    </header>
+                    <sheet>
+                        <group>
+                            <group>
+                                <field name="employee_id"/>
+                                <field name="mans"/>
+                                <field name="department_id"/>
+                            </group>
+                            <group>
+                                <field name="month"/>
+                                <field name="year"/>
+                                <field name="monthly_sheet_id"/>
+                            </group>
+                        </group>
+                        
+                        <group string="Chi tiết theo ngày">
+                            <group>
+                                <field name="day_01"/>
+                                <field name="day_02"/>
+                                <field name="day_03"/>
+                                <field name="day_04"/>
+                                <field name="day_05"/>
+                                <field name="day_06"/>
+                                <field name="day_07"/>
+                                <field name="day_08"/>
+                                <field name="day_09"/>
+                                <field name="day_10"/>
+                                <field name="day_11"/>
+                                <field name="day_12"/>
+                                <field name="day_13"/>
+                                <field name="day_14"/>
+                                <field name="day_15"/>
+                                <field name="day_16"/>
+                            </group>
+                            <group>
+                                <field name="day_17"/>
+                                <field name="day_18"/>
+                                <field name="day_19"/>
+                                <field name="day_20"/>
+                                <field name="day_21"/>
+                                <field name="day_22"/>
+                                <field name="day_23"/>
+                                <field name="day_24"/>
+                                <field name="day_25"/>
+                                <field name="day_26"/>
+                                <field name="day_27"/>
+                                <field name="day_28"/>
+                                <field name="day_29"/>
+                                <field name="day_30"/>
+                                <field name="day_31"/>
+                            </group>
+                        </group>
+                        
+                        <group string="Tổng kết">
+                            <group>
+                                <field name="worked_days"/>
+                                <field name="paid_leave_days"/>
+                                <field name="unpaid_leave_days"/>
+                            </group>
+                            <group>
+                                <field name="overtime_hours"/>
+                                <field name="total_paid_days"/>
+                            </group>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- Search view -->
+        <record id="view_hr_monthly_attendance_grid_search" model="ir.ui.view">
+            <field name="name">hr.monthly.attendance.grid.search</field>
+            <field name="model">hr.monthly.attendance.grid</field>
+            <field name="arch" type="xml">
+                <search>
+                    <field name="employee_id"/>
+                    <field name="mans"/>
+                    <field name="department_id"/>
+                    <field name="month"/>
+                    <field name="year"/>
+                    
+                    <filter string="Tháng hiện tại" 
+                            name="current_month"
+                            domain="[('month', '=', context.get('default_month', str((context_today()).strftime('%m')))),
+                                     ('year', '=', context.get('default_year', (context_today()).year))]"/>
+                    
+                    <group expand="0" string="Nhóm theo">
+                        <filter string="Phòng ban" name="group_department" context="{'group_by': 'department_id'}"/>
+                        <filter string="Tháng" name="group_month" context="{'group_by': 'month'}"/>
+                        <filter string="Năm" name="group_year" context="{'group_by': 'year'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <!-- Menu action for grid -->
+        <record id="action_hr_monthly_attendance_grid_menu" model="ir.actions.act_window">
+            <field name="name">Bảng chấm công (Grid)</field>
+            <field name="res_model">hr.monthly.attendance.grid</field>
+            <field name="view_mode">list,form</field>
+            <field name="search_view_id" ref="view_hr_monthly_attendance_grid_search"/>
+            <field name="context">{
+                'search_default_current_month': 1,
+            }</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    Tạo bảng chấm công grid
+                </p>
+                <p>
+                    Grid view sẽ tự động được tạo khi import dữ liệu chấm công.
+                </p>
+            </field>
+        </record>
+
+    </data>
+</odoo>

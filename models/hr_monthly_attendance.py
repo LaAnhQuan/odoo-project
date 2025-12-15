@@ -144,18 +144,39 @@ class HrMonthlyAttendance(models.Model):
                 })
 
                 code = d.attendance_code or "W"
-                val = d.workday_value if d.workday_value is not None else CODE_TO_VALUE.get(code, 1.0)
-
-                data[emp.id]["worked"] += float(val)
-
-                # phép
-                if code in ("P", "P2"):
-                    data[emp.id]["paid_leave"] += float(val)
-
-                # không lương / nghỉ (tuỳ quy ước)
-                if code in ("KO", "KO2", "OFF"):
-                    # Nếu bạn muốn KO = 1 ngày không lương, KO2 = 0.5, OFF = 1 thì sửa tại đây
-                    data[emp.id]["unpaid_leave"] += float(val)
+                
+                # Kiểm tra ngày trong tuần
+                is_saturday = d.date.weekday() == 5
+                is_sunday = d.date.weekday() == 6
+                
+                # Tính giá trị ngày công dựa vào code và ngày trong tuần
+                if code in ("W", "X"):
+                    # Ngày công thực tế (đi làm)
+                    if is_sunday:
+                        val = 0.0  # Chủ nhật không tính công
+                    elif is_saturday:
+                        val = 0.5  # Thứ 7 chỉ tính nửa công
+                    else:
+                        val = 1.0  # Ngày thường tính đủ
+                    data[emp.id]["worked"] += val
+                    
+                elif code in ("P", "P2"):
+                    # Ngày nghỉ hưởng lương (Phép)
+                    val = CODE_TO_VALUE.get(code, 1.0)
+                    data[emp.id]["worked"] += val
+                    data[emp.id]["paid_leave"] += val
+                    
+                elif code in ("KO", "KO2", "OFF"):
+                    # Ngày nghỉ không lương
+                    val = CODE_TO_VALUE.get(code, 0.0)
+                    if code in ("KO", "KO2"):
+                        # KO = 1 ngày không lương, KO2 = 0.5 ngày không lương
+                        unpaid_val = 1.0 if code == "KO" else 0.5
+                        data[emp.id]["unpaid_leave"] += unpaid_val
+                else:
+                    # Code khác (nếu có) - sử dụng giá trị mặc định
+                    val = d.workday_value if d.workday_value is not None else CODE_TO_VALUE.get(code, 1.0)
+                    data[emp.id]["worked"] += float(val)
 
                 data[emp.id]["ot"] += float(d.overtime_hours or 0.0)
                 data[emp.id]["daily_ids"] |= d
@@ -186,6 +207,28 @@ class HrMonthlyAttendance(models.Model):
     def action_set_to_draft(self):
         for sheet in self:
             sheet.state = "draft"
+
+    # ------------------------------------------------------------
+    # ACTION: Open Grid View
+    # ------------------------------------------------------------
+    def action_open_grid_view(self):
+        """Mở grid view với dữ liệu của sheet này"""
+        self.ensure_one()
+        
+        # Đồng bộ dữ liệu sang grid view
+        Grid = self.env["hr.monthly.attendance.grid"]
+        Grid.sync_all_from_monthly_sheet(self.id)
+        
+        return {
+            "type": "ir.actions.client",
+            "tag": "monthly_attendance_grid",
+            "name": f"Grid - {self.name}",
+            "context": {
+                "default_month": self.month,
+                "default_year": self.year,
+                "default_department_id": self.department_id.id if self.department_id else False,
+            },
+        }
 
     # ------------------------------------------------------------
     # ACTION: Open Import Wizard (Excel matrix)

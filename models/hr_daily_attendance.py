@@ -1,7 +1,7 @@
 from odoo import api, fields, models
 
 ATTENDANCE_CODE_MAP = [
-    ("W", "Công (mặc định)"),
+    ("X", "Công (mặc định)"),
     ("P", "Phép"),
     ("P2", "Phép nửa ngày"),
     ("KO", "Không lương"),
@@ -44,7 +44,7 @@ class HrDailyAttendance(models.Model):
     attendance_code = fields.Selection(
         ATTENDANCE_CODE_MAP,
         string="Ký hiệu",
-        default="W",
+        default="X",
         required=True,
         index=True,
     )
@@ -107,7 +107,7 @@ class HrDailyAttendance(models.Model):
     @api.depends("attendance_code")
     def _compute_workday_value(self):
         mapping = {
-            "W": 1.0,
+            "X": 1.0,
             "P": 1.0,
             "P2": 0.5,
             "KO": 0.0,

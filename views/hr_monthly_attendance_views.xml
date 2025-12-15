@@ -57,6 +57,12 @@
                                 string="Import Excel (Ma trận)"
                                 class="btn-secondary"/>
 
+                        <!-- XEM GRID VIEW -->
+                        <button name="action_open_grid_view"
+                                type="object"
+                                string="Xem dạng Grid"
+                                class="btn-info"/>
+
 
                         <field name="state"
                                widget="statusbar"

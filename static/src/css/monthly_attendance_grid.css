@@ -1,0 +1,392 @@
+/* Monthly Attendance Grid Styles */
+
+.o_monthly_attendance_grid {
+    padding: 16px;
+    background: #f5f5f5;
+    height: 100%;
+    overflow: auto;
+}
+
+.o_grid_header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    background: white;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.o_grid_title h3 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
+}
+
+.o_grid_controls button {
+    margin-left: 8px;
+}
+
+.o_grid_loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+    color: #7c7bad;
+}
+
+/* Wrapper phải có overflow-x để scroll ngang */
+.o_grid_table_container {
+    background: white;
+    border-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    overflow-x: auto;
+    /* scroll ngang */
+    overflow-y: auto;
+    padding: 16px;
+    position: relative;
+    /* giúp sticky ổn định */
+}
+
+.o_attendance_grid_table {
+    width: max-content;
+    /* quan trọng: bảng rộng theo số cột ngày */
+    min-width: 100%;
+    margin-bottom: 0;
+    font-size: 12px;
+    border-collapse: separate;
+    /* sticky + border ổn hơn collapse */
+    border-spacing: 0;
+}
+
+/* Sticky header (dính trên) */
+.o_attendance_grid_table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    /* Z-index thấp hơn sticky columns */
+    background: #e9ecef;
+}
+
+/* Header row */
+.o_grid_header_row {
+    background: #f8f9fa;
+}
+
+.o_grid_cell_header {
+    padding: 8px 4px;
+    text-align: center;
+    font-weight: 600;
+    border: 1px solid #dee2e6;
+    background: #e9ecef;
+    color: #495057;
+    white-space: nowrap;
+    min-width: 35px;
+    z-index: 5 !important;
+    /* Z-index thấp để không che sticky columns */
+}
+
+.o_grid_cell_day {
+    padding: 8px 4px;
+    text-align: center;
+    font-weight: 600;
+    border: 1px solid #dee2e6;
+    background: #f8f9fa;
+    min-width: 35px;
+}
+
+.o_grid_cell_day.weekend {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.o_grid_cell_day.saturday {
+    background: #ffeaa7;
+    color: #d63031;
+    font-weight: 700;
+}
+
+/* =========================================================
+   ✅ STICKY COLUMNS: STT + MANS + Họ tên đứng im
+   ✅ Cột trái "đè" lên phần ngày khi scroll ngang
+   ========================================================= */
+
+/* Sticky chung - Che phủ hoàn toàn các cột ngày */
+.sticky-col {
+    position: -webkit-sticky;
+    position: sticky;
+    background-color: #ffffff !important;
+    /* Background đặc để che hoàn toàn */
+    z-index: 100 !important;
+    /* Z-index rất cao để luôn ở trên */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border-right: 3px solid #6c757d !important;
+    /* Border đậm hơn để rõ ràng */
+    box-shadow: 3px 0 5px rgba(0, 0, 0, 0.15) !important;
+    /* Shadow để tạo độ sâu */
+    clip-path: inset(0 -10px 0 0);
+    /* Cắt phần thừa ở bên phải, giữ shadow bên trái */
+}
+
+/* Sticky ở THEAD phải cao hơn BODY */
+.o_attendance_grid_table thead .sticky-col {
+    background-color: #e9ecef !important;
+    z-index: 200 !important;
+    /* Header cao hơn body */
+    border-right: 3px solid #495057 !important;
+    box-shadow: 3px 0 5px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Cột STT */
+.o_attendance_grid_table th.sticky-col:nth-child(1),
+.o_attendance_grid_table td.sticky-col:nth-child(1) {
+    left: 0 !important;
+    min-width: 50px;
+    width: 50px;
+    max-width: 50px;
+    z-index: 103 !important;
+}
+
+/* Cột MANS - Co dãn theo text */
+.o_attendance_grid_table th.sticky-col:nth-child(2),
+.o_attendance_grid_table td.sticky-col:nth-child(2) {
+    left: 50px !important;
+    min-width: 80px;
+    /* Tối thiểu 80px */
+    width: auto;
+    /* Auto để co dãn */
+    max-width: 150px;
+    /* Tối đa 150px */
+    z-index: 102 !important;
+}
+
+/* Cột Họ tên */
+.o_attendance_grid_table th.sticky-col:nth-child(3),
+.o_attendance_grid_table td.sticky-col:nth-child(3) {
+    left: calc(50px + var(--mans-width, 130px)) !important;
+    /* Dynamic left dựa trên MANS width */
+    min-width: 180px;
+    width: auto;
+    /* Auto để co dãn */
+    max-width: 250px;
+    z-index: 101 !important;
+}
+
+/* Header sticky cao hơn */
+.o_attendance_grid_table thead th.sticky-col:nth-child(1) {
+    z-index: 203 !important;
+}
+
+.o_attendance_grid_table thead th.sticky-col:nth-child(2) {
+    z-index: 202 !important;
+}
+
+.o_attendance_grid_table thead th.sticky-col:nth-child(3) {
+    z-index: 201 !important;
+}
+
+/* =========================================================
+   Grid cells
+   ========================================================= */
+
+.o_grid_row {
+    transition: background-color 0.2s;
+}
+
+.o_grid_row:hover {
+    background-color: #f8f9fa;
+}
+
+/* Ô ngày - Z-index thấp để bị sticky che */
+.o_grid_cell {
+    padding: 4px;
+    text-align: center;
+    border: 1px solid #dee2e6;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+    min-width: 35px;
+    max-width: 60px;
+    height: 35px;
+    vertical-align: middle;
+    background: #fff;
+    position: relative;
+    z-index: 1 !important;
+    /* Z-index thấp để bị sticky columns che phủ */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Hover: KHÔNG được vượt z-index sticky */
+.o_grid_cell:hover {
+    background-color: #e7f3ff !important;
+    border-color: #0066cc;
+    /* transform: scale(1.05);  <-- nếu cần hiệu ứng, bật lên nhưng đôi khi gây chồng lớp */
+    z-index: 2;
+    /* vẫn thấp hơn sticky-col */
+}
+
+.o_grid_cell_content {
+    font-size: 11px;
+    line-height: 1.2;
+    overflow: hidden;
+    /* ẩn hoàn toàn text tràn */
+    text-overflow: ellipsis;
+    /* hiển thị ... nếu tràn */
+    white-space: nowrap;
+    /* không xuống dòng */
+}
+
+/* Cell types */
+.cell-empty {
+    background-color: #fff;
+}
+
+.cell-work {
+    background-color: #d1e7dd;
+    color: #0f5132;
+    font-weight: 500;
+}
+
+.cell-leave {
+    background-color: #cfe2ff;
+    color: #084298;
+    font-weight: 500;
+}
+
+.cell-unpaid {
+    background-color: #f8d7da;
+    color: #842029;
+    font-weight: 500;
+}
+
+.cell-off {
+    background-color: #e2e3e5;
+    color: #41464b;
+}
+
+.o_grid_cell.weekend {
+    background-color: #fffaed;
+}
+
+/* Employee info columns (body cells) */
+.o_grid_cell_number {
+    text-align: center;
+    font-weight: 500;
+    border: 1px solid #dee2e6;
+    padding: 8px 4px;
+    background: #fff;
+    overflow: hidden;
+    /* ẩn hoàn toàn text tràn */
+    text-overflow: ellipsis;
+    /* hiển thị ... nếu tràn */
+    white-space: nowrap;
+    /* không xuống dòng */
+}
+
+.o_grid_cell_mans {
+    text-align: center;
+    border: 1px solid #dee2e6;
+    padding: 8px 4px;
+    font-family: 'Courier New', monospace;
+    color: #666;
+    background: #fff;
+    overflow: hidden;
+    /* ẩn hoàn toàn text tràn */
+    text-overflow: ellipsis;
+    /* hiển thị ... nếu tràn */
+    white-space: nowrap;
+    /* không xuống dòng */
+}
+
+.o_grid_cell_name {
+    text-align: left;
+    border: 1px solid #dee2e6;
+    padding: 8px 12px;
+    background: #fff;
+    overflow: hidden;
+    /* ẩn hoàn toàn text tràn */
+    text-overflow: ellipsis;
+    /* hiển thị ... nếu tràn */
+    white-space: nowrap;
+    /* không xuống dòng */
+}
+
+.o_grid_cell_total {
+    text-align: center;
+    border: 1px solid #dee2e6;
+    padding: 8px 4px;
+    background-color: #f8f9fa;
+    font-weight: 600;
+    min-width: 60px;
+    max-width: 80px;
+    font-size: 12px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+/* Style cho các cột tổng kết cụ thể */
+.o_grid_cell_work {
+    background-color: #d1e7dd !important;
+    color: #0f5132;
+}
+
+.o_grid_cell_leave {
+    background-color: #cfe2ff !important;
+    color: #084298;
+}
+
+.o_grid_cell_unpaid {
+    background-color: #f8d7da !important;
+    color: #842029;
+}
+
+.o_grid_cell_percentage {
+    background-color: #fff3cd !important;
+    color: #664d03;
+    font-weight: 700;
+}
+
+/* Empty state */
+.o_grid_empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: #6c757d;
+}
+
+.o_grid_empty p {
+    font-size: 16px;
+    margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .o_attendance_grid_table {
+        font-size: 11px;
+    }
+
+    .o_grid_cell {
+        min-width: 30px;
+        height: 30px;
+    }
+}
+
+/* Print styles */
+@media print {
+    .o_grid_header {
+        box-shadow: none;
+    }
+
+    .o_grid_controls {
+        display: none;
+    }
+
+    .o_attendance_grid_table {
+        font-size: 10px;
+    }
+}

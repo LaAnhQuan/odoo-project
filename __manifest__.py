@@ -22,9 +22,16 @@
         "views/hr_daily_attendance_views.xml",
         "views/hr_monthly_attendance_import_wizard_views.xml",
         "views/hr_monthly_attendance_views.xml",
+        "views/hr_monthly_attendance_grid_views.xml",
 
     ],
-    "assets": {},
+    "assets": {
+        "web.assets_backend": [
+            "mo_hr_monthly_attendance/static/src/js/monthly_attendance_grid.js",
+            "mo_hr_monthly_attendance/static/src/xml/monthly_attendance_grid.xml",
+            "mo_hr_monthly_attendance/static/src/css/monthly_attendance_grid.css",
+        ],
+    },
     "installable": True,
     "application": False,
 }
