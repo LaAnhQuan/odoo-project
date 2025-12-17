@@ -360,8 +360,9 @@ class HrMonthlyAttendanceGrid(models.Model):
                     except:
                         pass
             
-            # Tổng ngày công tính lương = Công + Phép + Thai sản + Lễ + Hiếu + Hỷ
-            total_paid = worked_days + paid_leave + maternity + holiday + bereavement + wedding
+            # Tổng ngày công = CHỈ công thực tế (KHÔNG tính phép và không lương)
+            # Phép và Không lương được tính riêng, không vào tổng công
+            total_paid = worked_days + maternity + holiday + bereavement + wedding
             
             rec.worked_days = worked_days
             rec.paid_leave_days = paid_leave
