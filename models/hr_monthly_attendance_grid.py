@@ -638,3 +638,98 @@ class HrMonthlyAttendanceGrid(models.Model):
                 "default_employee_id": self.employee_id.id,
             },
         }
+    
+    @api.model
+    def save_grid_changes(self, records_data, month, year, department_id=False):
+        """
+        Lưu tất cả thay đổi từ grid view
+        
+        Args:
+            records_data: List các record data với thông tin đã thay đổi
+            month: Tháng
+            year: Năm
+            department_id: ID phòng ban (optional)
+        
+        Returns:
+            dict: {"success": True/False, "message": "..."}
+        """
+        try:
+            Employee = self.env["hr.employee"]
+            
+            for record_data in records_data:
+                record_id = record_data.get("id")
+                
+                # Nếu là record mới (ID âm)
+                if record_id and record_id < 0:
+                    # Tạo hoặc tìm nhân viên
+                    mans = record_data.get("mans", "").strip()
+                    employee_name = record_data.get("employee_name", "").strip()
+                    
+                    if not employee_name:
+                        continue  # Bỏ qua nếu không có tên
+                    
+                    # Tìm nhân viên theo MANS hoặc tên
+                    employee = False
+                    if mans:
+                        employee = Employee.search([("mans", "=", mans)], limit=1)
+                    
+                    if not employee and employee_name:
+                        employee = Employee.search([("name", "=", employee_name)], limit=1)
+                    
+                    # Nếu không tìm thấy, tạo mới
+                    if not employee:
+                        employee_vals = {
+                            "name": employee_name,
+                        }
+                        if mans:
+                            employee_vals["mans"] = mans
+                        if department_id:
+                            employee_vals["department_id"] = department_id
+                        
+                        employee = Employee.create(employee_vals)
+                    
+                    # Tạo grid record mới
+                    grid_vals = {
+                        "employee_id": employee.id,
+                        "month": str(month),
+                        "year": year,
+                    }
+                    
+                    # Thêm dữ liệu các ngày
+                    for day in range(1, 32):
+                        field_name = f"day_{day:02d}"
+                        if field_name in record_data:
+                            grid_vals[field_name] = record_data[field_name]
+                    
+                    self.create(grid_vals)
+                
+                # Nếu là record đã tồn tại
+                elif record_id and record_id > 0:
+                    grid = self.browse(record_id)
+                    if not grid.exists():
+                        continue
+                    
+                    # Cập nhật thông tin nhân viên nếu có thay đổi
+                    employee_vals = {}
+                    if "mans" in record_data and record_data["mans"] != grid.mans:
+                        employee_vals["mans"] = record_data["mans"]
+                    if "employee_name" in record_data and record_data["employee_name"] != grid.employee_name:
+                        employee_vals["name"] = record_data["employee_name"]
+                    
+                    if employee_vals and grid.employee_id:
+                        grid.employee_id.write(employee_vals)
+                    
+                    # Cập nhật dữ liệu các ngày
+                    grid_vals = {}
+                    for day in range(1, 32):
+                        field_name = f"day_{day:02d}"
+                        if field_name in record_data:
+                            grid_vals[field_name] = record_data[field_name]
+                    
+                    if grid_vals:
+                        grid.write(grid_vals)
+            
+            return {"success": True, "message": "Lưu thành công"}
+        
+        except Exception as e:
+            return {"success": False, "message": str(e)}

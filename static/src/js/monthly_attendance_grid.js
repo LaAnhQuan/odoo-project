@@ -24,6 +24,13 @@ export class MonthlyAttendanceGrid extends Component {
             editingCell: null, // {recordId, day}
             showDropdown: false,
             dropdownPosition: { top: 0, left: 0 },
+            hasChanges: false, // Đánh dấu có thay đổi chưa lưu
+            showEmployeeModal: false, // Hiển thị modal edit nhân viên
+            editingRecord: null, // Record đang được edit trong modal
+            showContextMenu: false, // Hiển thị context menu
+            contextMenuPosition: { top: 0, left: 0 },
+            contextMenuRecord: null, // Record cho context menu
+            changedRecords: new Set(), // Set của record IDs đã thay đổi
         });
 
         this.attendanceCodes = [
@@ -138,6 +145,84 @@ export class MonthlyAttendanceGrid extends Component {
         await this.loadData();
     }
 
+    async onSaveChanges() {
+        if (!this.state.hasChanges) return;
+
+        this.state.loading = true;
+
+        try {
+            // Chuẩn bị dữ liệu để lưu
+            const recordsToSave = this.state.records.filter(rec =>
+                this.state.changedRecords.has(rec.id) || rec.id < 0
+            );
+
+            // Gọi API để lưu tất cả thay đổi
+            const result = await this.orm.call(
+                "hr.monthly.attendance.grid",
+                "save_grid_changes",
+                [recordsToSave, this.state.month, this.state.year, this.state.department_id],
+                {}
+            );
+
+            if (result.success) {
+                // Reset trạng thái thay đổi
+                this.state.hasChanges = false;
+                this.state.changedRecords.clear();
+
+                // Reload dữ liệu
+                await this.loadData();
+
+                // Hiển thị thông báo thành công
+                this.env.services.notification.add(
+                    "Lưu thành công!",
+                    { type: "success" }
+                );
+            }
+        } catch (error) {
+            console.error("Error saving changes:", error);
+            this.env.services.notification.add(
+                "Lỗi khi lưu dữ liệu: " + (error.message || "Unknown error"),
+                { type: "danger" }
+            );
+        }
+
+        this.state.loading = false;
+    }
+
+    onAddNewRow() {
+        // Tạo record mới với ID âm (tạm thời)
+        const newId = -(Date.now());
+        const newRecord = {
+            id: newId,
+            employee_id: false,
+            employee_name: "",
+            mans: "",
+            department_id: this.state.department_id ? [this.state.department_id, ""] : false,
+            monthly_sheet_id: false,
+            worked_days: 0,
+            paid_leave_days: 0,
+            unpaid_leave_days: 0,
+            maternity_days: 0,
+            holiday_days: 0,
+            bereavement_days: 0,
+            wedding_days: 0,
+            overtime_hours: 0,
+            total_paid_days: 0,
+        };
+
+        // Thêm các field day
+        this.state.days.forEach(day => {
+            const field = `day_${String(day).padStart(2, "0")}`;
+            newRecord[field] = "";
+        });
+
+        this.state.records.push(newRecord);
+
+        // Mở modal để nhập thông tin
+        this.state.editingRecord = newRecord;
+        this.state.showEmployeeModal = true;
+    }
+
     async onCellClick(event, record, day) {
         // Hiển thị dropdown để chỉnh sửa
         event.stopPropagation();
@@ -175,21 +260,18 @@ export class MonthlyAttendanceGrid extends Component {
 
         const { recordId, day } = this.state.editingCell;
 
-        try {
-            // Gọi API để update cell value
-            const result = await this.orm.call(
-                "hr.monthly.attendance.grid",
-                "update_cell_value",
-                [recordId, day, code],
-                {}
-            );
+        // Tìm record và cập nhật giá trị local
+        const record = this.state.records.find(r => r.id === recordId);
+        if (record) {
+            const field = `day_${String(day).padStart(2, "0")}`;
+            record[field] = code;
 
-            if (result.success) {
-                // Cập nhật lại dữ liệu local
-                await this.loadData();
-            }
-        } catch (error) {
-            console.error("Error updating cell:", error);
+            // Đánh dấu record đã thay đổi
+            this.state.changedRecords.add(recordId);
+            this.state.hasChanges = true;
+
+            // Tính lại totals cho record này
+            this.recalculateTotals(record);
         }
 
         // Đóng dropdown
@@ -202,6 +284,11 @@ export class MonthlyAttendanceGrid extends Component {
         if (this.state.showDropdown) {
             this.state.showDropdown = false;
             this.state.editingCell = null;
+        }
+        // Đóng context menu
+        if (this.state.showContextMenu) {
+            this.state.showContextMenu = false;
+            this.state.contextMenuRecord = null;
         }
     }
 
@@ -290,6 +377,155 @@ export class MonthlyAttendanceGrid extends Component {
     isSaturday(day) {
         const date = new Date(this.state.year, this.state.month - 1, day);
         return date.getDay() === 6;
+    }
+
+    onModalInputChange(event, field) {
+        if (!this.state.editingRecord) return;
+
+        const value = event.target.value;
+        if (field === 'mans') {
+            this.state.editingRecord.mans = value;
+        } else if (field === 'employee_name') {
+            this.state.editingRecord.employee_name = value;
+        }
+    }
+
+    onCloseEmployeeModal() {
+        // Nếu là record mới và chưa có tên, xóa khỏi danh sách
+        if (this.state.editingRecord &&
+            this.state.editingRecord.id < 0 &&
+            !this.state.editingRecord.employee_name) {
+            const index = this.state.records.findIndex(r => r.id === this.state.editingRecord.id);
+            if (index >= 0) {
+                this.state.records.splice(index, 1);
+            }
+        }
+
+        this.state.showEmployeeModal = false;
+        this.state.editingRecord = null;
+    }
+
+    onSaveEmployeeModal() {
+        if (!this.state.editingRecord) return;
+
+        // Kiểm tra đã nhập tên chưa
+        if (!this.state.editingRecord.employee_name || !this.state.editingRecord.employee_name.trim()) {
+            alert('Vui lòng nhập tên nhân viên!');
+            return;
+        }
+
+        // Đánh dấu thay đổi
+        this.state.changedRecords.add(this.state.editingRecord.id);
+        this.state.hasChanges = true;
+
+        // Đóng modal
+        this.state.showEmployeeModal = false;
+        this.state.editingRecord = null;
+    }
+
+    onRowRightClick(event, record) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        this.state.contextMenuRecord = record;
+        this.state.showContextMenu = true;
+        this.state.contextMenuPosition = {
+            top: event.pageY,
+            left: event.pageX,
+        };
+    }
+
+    onEditEmployee(event, record) {
+        event.stopPropagation();
+        this.state.editingRecord = record;
+        this.state.showEmployeeModal = true;
+    }
+
+    onEditEmployeeFromMenu() {
+        if (!this.state.contextMenuRecord) return;
+
+        this.state.editingRecord = this.state.contextMenuRecord;
+        this.state.showEmployeeModal = true;
+        this.state.showContextMenu = false;
+        this.state.contextMenuRecord = null;
+    }
+
+    onDeleteEmployee() {
+        if (!this.state.contextMenuRecord) return;
+
+        if (!confirm(`Xóa nhân viên "${this.state.contextMenuRecord.employee_name}"?`)) {
+            this.state.showContextMenu = false;
+            return;
+        }
+
+        const index = this.state.records.findIndex(r => r.id === this.state.contextMenuRecord.id);
+        if (index >= 0) {
+            this.state.records.splice(index, 1);
+
+            // Nếu là record đã tồn tại, đánh dấu cần xóa
+            if (this.state.contextMenuRecord.id > 0) {
+                // TODO: Thêm vào danh sách cần xóa
+                this.state.hasChanges = true;
+            }
+        }
+
+        this.state.showContextMenu = false;
+        this.state.contextMenuRecord = null;
+    }
+
+    recalculateTotals(record) {
+        // Tính lại totals cho record dựa trên các ngày đã nhập
+        const codeToValue = {
+            "P": 1.0, "P2": 0.5, "P/2": 0.5,
+            "KO": 1.0, "KO2": 0.5, "KO/2": 0.5,
+            "TS": 1.0, "TS2": 0.5, "TS/2": 0.5,
+            "L": 1.0, "L2": 0.5, "L/2": 0.5,
+            "H": 1.0, "H2": 0.5, "H/2": 0.5,
+            "HY": 1.0, "HY2": 0.5, "HY/2": 0.5,
+            "OFF": 0.0,
+        };
+
+        let worked = 0, leave = 0, unpaid = 0, maternity = 0;
+        let holiday = 0, bereavement = 0, wedding = 0;
+
+        this.state.days.forEach(day => {
+            const field = `day_${String(day).padStart(2, "0")}`;
+            const value = record[field] || "";
+            const code = value.split(/[\s(]/)[0].trim().toUpperCase();
+
+            if (!code || code === "OFF") return;
+
+            const date = new Date(this.state.year, this.state.month - 1, day);
+            const isSat = date.getDay() === 5;
+            const isSun = date.getDay() === 6;
+
+            if (code === "W" || code === "X") {
+                if (isSun) worked += 0;
+                else if (isSat) worked += 0.5;
+                else worked += 1.0;
+            } else if (code.startsWith("P")) {
+                leave += codeToValue[code] || 1.0;
+            } else if (code.startsWith("KO")) {
+                unpaid += codeToValue[code] || 1.0;
+            } else if (code.startsWith("TS")) {
+                maternity += codeToValue[code] || 1.0;
+            } else if (code.startsWith("L")) {
+                holiday += codeToValue[code] || 1.0;
+            } else if (code.startsWith("H") && !code.startsWith("HY")) {
+                bereavement += codeToValue[code] || 1.0;
+            } else if (code.startsWith("HY")) {
+                wedding += codeToValue[code] || 1.0;
+            }
+        });
+
+        record.worked_days = worked;
+        record.paid_leave_days = leave;
+        record.unpaid_leave_days = unpaid;
+        record.maternity_days = maternity;
+        record.holiday_days = holiday;
+        record.bereavement_days = bereavement;
+        record.wedding_days = wedding;
+        record.total_paid_days = worked + leave + maternity + holiday + bereavement + wedding;
     }
 }
 

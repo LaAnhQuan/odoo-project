@@ -16,8 +16,11 @@
                     <button class="btn btn-secondary" t-on-click="onBackToMonthlySheet">
                         <i class="fa fa-arrow-left"/> Quay lại bảng chính
                     </button>
-                    <button class="btn btn-primary" t-on-click="onRefresh">
-                        <i class="fa fa-refresh"/> Làm mới
+                    <button class="btn btn-success" t-on-click="onAddNewRow">
+                        <i class="fa fa-plus"/> Thêm dòng
+                    </button>
+                    <button class="btn btn-primary" t-on-click="onSaveChanges" t-att-disabled="!state.hasChanges">
+                        <i class="fa fa-save"/> Lưu
                     </button>
                 </div>
             </div>
@@ -54,26 +57,28 @@
                             <th t-foreach="state.days" t-as="day" t-key="'day_' + day"
                                 t-att-class="'o_grid_cell_day' + (isWeekend(day) ? ' weekend' : '') + (isSaturday(day) ? ' saturday' : '')">
                                 <t t-esc="day"/>
-                                <t t-if="isSaturday(day)">
+                                <!-- <t t-if="isSaturday(day)">
                                     <span class="badge badge-warning" style="font-size: 9px; margin-left: 2px;">0.5</span>
-                                </t>
+                                </t> -->
                             </th>
                         </tr>
                     </thead>
                     <tbody>
-                        <tr t-foreach="state.records" t-as="record" t-key="record.id" class="o_grid_row">
+                        <tr t-foreach="state.records" t-as="record" t-key="record.id" 
+                            class="o_grid_row"
+                            t-on-contextmenu="(ev) => this.onRowRightClick(ev, record)">
                             <!-- STT -->
                             <td class="o_grid_cell_number sticky-col">
                                 <t t-esc="record_index + 1"/>
                             </td>
                             
                             <!-- MANS -->
-                            <td class="o_grid_cell_mans sticky-col">
+                            <td class="o_grid_cell_mans sticky-col" t-on-dblclick="(ev) => this.onEditEmployee(ev, record)">
                                 <t t-esc="record.mans"/>
                             </td>
                             
                             <!-- Tên nhân viên -->
-                            <td class="o_grid_cell_name sticky-col">
+                            <td class="o_grid_cell_name sticky-col" t-on-dblclick="(ev) => this.onEditEmployee(ev, record)">
                                 <strong><t t-esc="record.employee_name"/></strong>
                             </td>
                             
@@ -141,7 +146,7 @@
                 </div>
             </div>
 
-            <!-- Dropdown menu for editing -->
+            <!-- Dropdown menu for editing attendance codes -->
             <div t-if="state.showDropdown" 
                  t-att-class="'o_attendance_code_dropdown' + (state.dropdownPosition.openUpward ? ' o_dropdown_upward' : '')"
                  t-att-style="`top: ${state.dropdownPosition.top}px; left: ${state.dropdownPosition.left}px;`"
@@ -159,6 +164,51 @@
                             <t t-else="">--</t>
                         </span>
                         <span class="o_code_name" t-esc="codeItem.label"/>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Context menu -->
+            <div t-if="state.showContextMenu" 
+                 class="o_context_menu"
+                 t-att-style="`top: ${state.contextMenuPosition.top}px; left: ${state.contextMenuPosition.left}px;`"
+                 t-on-click.stop="">
+                <div class="o_context_menu_item" t-on-click="onEditEmployeeFromMenu">
+                    <i class="fa fa-edit"/> Sửa thông tin
+                </div>
+                <div class="o_context_menu_item o_context_menu_danger" t-on-click="onDeleteEmployee">
+                    <i class="fa fa-trash"/> Xóa dòng
+                </div>
+            </div>
+
+            <!-- Modal for editing employee info -->
+            <div t-if="state.showEmployeeModal" class="o_employee_modal_backdrop" t-on-click="onCloseEmployeeModal">
+                <div class="o_employee_modal" t-on-click.stop="">
+                    <div class="o_modal_header">
+                        <h4><t t-if="state.editingRecord and state.editingRecord.id > 0">Sửa thông tin nhân viên</t><t t-else="">Thêm nhân viên mới</t></h4>
+                        <button class="btn btn-link" t-on-click="onCloseEmployeeModal">
+                            <i class="fa fa-times"/>
+                        </button>
+                    </div>
+                    <div class="o_modal_body">
+                        <div class="form-group">
+                            <label>MANS</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   t-att-value="state.editingRecord ? state.editingRecord.mans : ''"
+                                   t-on-input="(ev) => this.onModalInputChange(ev, 'mans')"/>
+                        </div>
+                        <div class="form-group">
+                            <label>Họ và tên</label>
+                            <input type="text" 
+                                   class="form-control" 
+                                   t-att-value="state.editingRecord ? state.editingRecord.employee_name : ''"
+                                   t-on-input="(ev) => this.onModalInputChange(ev, 'employee_name')"/>
+                        </div>
+                    </div>
+                    <div class="o_modal_footer">
+                        <button class="btn btn-secondary" t-on-click="onCloseEmployeeModal">Hủy</button>
+                        <button class="btn btn-primary" t-on-click="onSaveEmployeeModal">Lưu</button>
                     </div>
                 </div>
             </div>
