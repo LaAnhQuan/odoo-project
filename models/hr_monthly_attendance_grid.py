@@ -655,40 +655,43 @@ class HrMonthlyAttendanceGrid(models.Model):
         """
         try:
             Employee = self.env["hr.employee"]
+            not_found_employees = []  # Danh sách nhân viên không tìm thấy
             
             for record_data in records_data:
                 record_id = record_data.get("id")
                 
                 # Nếu là record mới (ID âm)
                 if record_id and record_id < 0:
-                    # Tạo hoặc tìm nhân viên
-                    mans = record_data.get("mans", "").strip()
-                    employee_name = record_data.get("employee_name", "").strip()
+                    # Lấy thông tin nhân viên
+                    mans = (record_data.get("mans") or "").strip()
+                    employee_name = (record_data.get("employee_name") or "").strip()
                     
-                    if not employee_name:
-                        continue  # Bỏ qua nếu không có tên
+                    # Bắt buộc phải có MANS hoặc tên
+                    if not mans and not employee_name:
+                        continue
                     
-                    # Tìm nhân viên theo MANS hoặc tên
+                    # Tìm nhân viên - ưu tiên theo MANS
                     employee = False
+                    
                     if mans:
+                        # Tìm theo MANS (chính xác)
                         employee = Employee.search([("mans", "=", mans)], limit=1)
                     
                     if not employee and employee_name:
-                        employee = Employee.search([("name", "=", employee_name)], limit=1)
+                        # Tìm theo tên (không phân biệt hoa thường)
+                        employee = Employee.search([("name", "=ilike", employee_name)], limit=1)
                     
-                    # Nếu không tìm thấy, tạo mới
+                    # VALIDATION: Nếu không tìm thấy -> BÁO LỖI
                     if not employee:
-                        employee_vals = {
-                            "name": employee_name,
-                        }
-                        if mans:
-                            employee_vals["mans"] = mans
-                        if department_id:
-                            employee_vals["department_id"] = department_id
-                        
-                        employee = Employee.create(employee_vals)
+                        if mans and employee_name:
+                            not_found_employees.append(f"MANS: '{mans}', Tên: '{employee_name}'")
+                        elif mans:
+                            not_found_employees.append(f"MANS: '{mans}'")
+                        else:
+                            not_found_employees.append(f"Tên: '{employee_name}'")
+                        continue  # Bỏ qua record này, không tạo
                     
-                    # Tạo grid record mới
+                    # Tạo grid record mới với employee đã tìm thấy
                     grid_vals = {
                         "employee_id": employee.id,
                         "month": str(month),
@@ -729,7 +732,18 @@ class HrMonthlyAttendanceGrid(models.Model):
                     if grid_vals:
                         grid.write(grid_vals)
             
-            return {"success": True, "message": "Lưu thành công"}
+            # Kiểm tra nếu có nhân viên không tồn tại
+            if not_found_employees:
+                error_message = "❌ Lưu thất bại! Không tìm thấy nhân viên trong hệ thống:\n\n"
+                for idx, emp in enumerate(not_found_employees, 1):
+                    error_message += f"{idx}. {emp}\n"
+                error_message += "\n⚠️ Vui lòng kiểm tra lại MANS và tên nhân viên, hoặc tạo nhân viên trong hệ thống trước."
+                return {"success": False, "message": error_message}
+            
+            # Đồng bộ tất cả grid records về monthly attendance lines
+            self._sync_all_to_monthly_lines(month, year, department_id)
+            
+            return {"success": True, "message": "✅ Lưu thành công!"}
         
         except Exception as e:
-            return {"success": False, "message": str(e)}
+            return {"success": False, "message": f"❌ Lỗi: {str(e)}"}

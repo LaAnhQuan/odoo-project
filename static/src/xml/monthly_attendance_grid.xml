@@ -16,6 +16,9 @@
                     <button class="btn btn-secondary" t-on-click="onBackToMonthlySheet">
                         <i class="fa fa-arrow-left"/> Quay lại bảng chính
                     </button>
+                    <button class="btn btn-info" t-on-click="onImportExcel">
+                        <i class="fa fa-upload"/> Import Excel
+                    </button>
                     <button class="btn btn-success" t-on-click="onAddNewRow">
                         <i class="fa fa-plus"/> Thêm dòng
                     </button>

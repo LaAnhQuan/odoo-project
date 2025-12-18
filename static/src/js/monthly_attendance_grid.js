@@ -156,6 +156,15 @@ export class MonthlyAttendanceGrid extends Component {
                 this.state.changedRecords.has(rec.id) || rec.id < 0
             );
 
+            // Debug: Log dữ liệu sẽ gửi
+            console.log("=== DATA GỬI LÊN SERVER ===");
+            console.log("Records to save:", recordsToSave);
+            recordsToSave.forEach(rec => {
+                if (rec.id < 0) {
+                    console.log(`Record mới - ID: ${rec.id}, MANS: "${rec.mans}", Tên: "${rec.employee_name}"`);
+                }
+            });
+
             // Gọi API để lưu tất cả thay đổi
             const result = await this.orm.call(
                 "hr.monthly.attendance.grid",
@@ -163,6 +172,11 @@ export class MonthlyAttendanceGrid extends Component {
                 [recordsToSave, this.state.month, this.state.year, this.state.department_id],
                 {}
             );
+
+            // Debug: Log kết quả từ server
+            console.log("=== KẾT QUẢ TỪ SERVER ===");
+            console.log("Success:", result.success);
+            console.log("Message:", result.message);
 
             if (result.success) {
                 // Reset trạng thái thay đổi
@@ -174,8 +188,17 @@ export class MonthlyAttendanceGrid extends Component {
 
                 // Hiển thị thông báo thành công
                 this.env.services.notification.add(
-                    "Lưu thành công!",
+                    result.message || "Lưu thành công!",
                     { type: "success" }
+                );
+            } else {
+                // Hiển thị thông báo lỗi từ backend
+                this.env.services.notification.add(
+                    result.message || "Lưu thất bại!",
+                    {
+                        type: "danger",
+                        sticky: true  // Giữ thông báo để user đọc
+                    }
                 );
             }
         } catch (error) {
@@ -290,6 +313,29 @@ export class MonthlyAttendanceGrid extends Component {
             this.state.showContextMenu = false;
             this.state.contextMenuRecord = null;
         }
+    }
+
+    async onImportExcel() {
+        // Mở wizard import Excel
+        if (!this.state.monthly_sheet_id) {
+            this.env.services.notification.add(
+                "Chưa có bảng chấm công tháng. Vui lòng lưu trước khi import!",
+                { type: "warning" }
+            );
+            return;
+        }
+
+        this.action.doAction({
+            type: "ir.actions.act_window",
+            name: "Import Excel (Ma trận)",
+            res_model: "hr.monthly.attendance.import.wizard",
+            view_mode: "form",
+            views: [[false, "form"]],
+            target: "new",
+            context: {
+                default_sheet_id: this.state.monthly_sheet_id,
+            },
+        });
     }
 
     async onBackToMonthlySheet() {
